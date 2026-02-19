@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crank & Speak ✿</title>
+  <meta name="description" content="An aesthetic crank mechanism that plays voice audio when wound." />
+  <style>
+    :root{
+      /* Girly, soft-neon palette (clean + cute, not flirty) */
+      --bg0:#0a0710;         /* deep plum */
+      --bg1:#120a1f;         /* night violet */
+      --card:rgba(255,255,255,.06);
+      --stroke:rgba(255,235,246,.22);
+      --text:#fff1f7;
+      --muted:rgba(255,219,236,.74);
+      --accent:#ff86c8;      /* pink */
+      --accent2:#b892ff;     /* lavender */
+      --accent3:#7de6ff;     /* airy cyan (tiny use) */
+      --good:#a7ffcf;
+      --warn:#ffd7a8;
+      --shadow: 0 34px 90px rgba(0,0,0,.58);
+      --radius: 24px;
+      --ring: 0 0 0 1px rgba(255,235,246,.14), 0 0 0 4px rgba(255,134,200,.14);
+    }
+
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1100px 650px at 22% 18%, rgba(255,134,200,.22), transparent 58%),
+        radial-gradient(900px 520px at 82% 26%, rgba(184,146,255,.18), transparent 62%),
+        radial-gradient(900px 760px at 52% 104%, rgba(125,230,255,.10), transparent 62%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+      overflow-x:hidden;
+    }
+
+    .wrap{
+      min-height:100%;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+
+    .panel{
+      width:min(980px, 100%);
+      background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.02));
+      border:1px solid rgba(255,235,246,.14);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    /* Soft, girly glow accents */
+    .panel::before{
+      content:"";
+      position:absolute;
+      inset:-220px -220px auto -220px;
+      height:420px;
+      background:
+        radial-gradient(closest-side at 40% 50%, rgba(255,134,200,.18), transparent 60%),
+        radial-gradient(closest-side at 70% 40%, rgba(184,146,255,.16), transparent 62%);
+      pointer-events:none;
+      filter: blur(2px);
+    }
+
+    .panel::after{
+      content:"";
+      position:absolute;
+      inset:auto -220px -260px -220px;
+      height:520px;
+      background:
+        radial-gradient(closest-side at 50% 40%, rgba(125,230,255,.08), transparent 62%),
+        radial-gradient(closest-side at 25% 45%, rgba(255,134,200,.10), transparent 65%);
+      pointer-events:none;
+      filter: blur(2px);
+    }
+
+    .header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      padding:20px 20px 0 20px;
+    }
+
+    h1{
+      margin:0;
+      font-weight:700;
+      letter-spacing:-0.02em;
+      font-size: clamp(20px, 2.2vw, 28px);
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    .badge{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(255,134,200,.14);
+      border:1px solid rgba(255,134,200,.28);
+      color:var(--accent);
+    }
+
+    .sub{
+      margin:6px 0 0 0;
+      color:var(--muted);
+      line-height:1.5;
+      font-size:14px;
+      max-width: 58ch;
+    }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button{
+      appearance:none;
+      border:1px solid rgba(255,235,246,.18);
+      background:rgba(18,10,31,.55);
+      color:var(--text);
+      border-radius:14px;
+      padding:10px 12px;
+      cursor:pointer;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      box-shadow: 0 12px 34px rgba(0,0,0,.28);
+      font-weight:600;
+      font-size:13px;
+    }
+    button:hover{ transform: translateY(-1px); border-color: rgba(255,134,200,.38); background: rgba(18,10,31,.72); }
+    button:active{ transform: translateY(0px) scale(.98); }
+    button:focus-visible{ outline:none; box-shadow: var(--shadow), var(--ring); }
+
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,235,246,.16);
+      background:rgba(18,10,31,.46);
+    }
+    .toggle label{font-size:13px; color:var(--muted); user-select:none;}
+    .toggle input{ width:38px; height:22px; appearance:none; background:rgba(255,235,246,.10); border:1px solid rgba(255,235,246,.18); border-radius:999px; position:relative; cursor:pointer; outline:none; }
+    .toggle input::after{ content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; background:rgba(255,241,247,.92); border-radius:50%; transition: transform .18s ease, background .18s ease; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+    .toggle input:checked{ background: rgba(255,134,200,.18); border-color: rgba(255,134,200,.34);} 
+    .toggle input:checked::after{ transform: translateX(16px); background: rgba(255,134,200,.95);}  
+
+    .stage{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+      padding:16px 20px 20px 20px;
+    }
+    @media (max-width: 860px){
+      .stage{ grid-template-columns:1fr; }
+      .controls{ justify-content:flex-start; }
+    }
+
+    .canvasWrap{
+      background:
+        radial-gradient(720px 420px at 28% 18%, rgba(255,134,200,.22), transparent 62%),
+        radial-gradient(720px 420px at 82% 62%, rgba(184,146,255,.18), transparent 62%),
+        radial-gradient(760px 520px at 52% 110%, rgba(125,230,255,.08), transparent 62%),
+        rgba(18,10,31,.36);
+      border:1px solid rgba(255,235,246,.14);
+      border-radius: var(--radius);
+      position:relative;
+      overflow:hidden;
+      min-height: 420px;
+    }
+
+    canvas{ width:100%; height:100%; display:block; }
+
+    .hud{
+      position:absolute;
+      inset:14px 14px auto 14px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      pointer-events:none;
+      user-select:none;
+    }
+
+    .meter{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      pointer-events:none;
+    }
+
+    .meterTop{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .bar{
+      width: min(360px, 55vw);
+      height: 10px;
+      border-radius:999px;
+      background: rgba(199,210,255,.10);
+      border:1px solid rgba(199,210,255,.12);
+      overflow:hidden;
+      box-shadow: 0 12px 30px rgba(0,0,0,.25);
+    }
+    .fill{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, rgba(255,134,200,.92), rgba(184,146,255,.88));
+      filter:saturate(1.15);
+      border-radius:999px;
+    }
+
+    .status{
+      font-size:12px;
+      color:var(--muted);
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(18,10,31,.58);
+      border:1px solid rgba(255,235,246,.16);
+      box-shadow: 0 14px 44px rgba(0,0,0,.30);
+    }
+
+    .side{
+      background: rgba(18,10,31,.30);
+      border:1px solid rgba(255,235,246,.12);
+      border-radius: var(--radius);
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .card{
+      border:1px solid rgba(255,235,246,.12);
+      background: rgba(10,7,16,.18);
+      border-radius:18px;
+      padding:12px;
+    }
+
+    .k{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:8px;
+    }
+
+    .k strong{ font-size:13px; letter-spacing:.01em; }
+    .k span{ font-size:12px; color:var(--muted); }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; }
+
+    .pill{
+      font-size:12px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,235,246,.14);
+      background: rgba(18,10,31,.34);
+      color: var(--muted);
+    }
+
+    .hint{
+      font-size:13px;
+      line-height:1.55;
+      color: var(--muted);
+    }
+
+    .hint b{ color: var(--text); font-weight:650; }
+
+    .footer{
+      padding:0 20px 18px 20px;
+      color: rgba(167,178,255,.75);
+      font-size:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    a{ color: var(--accent); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    .srOnly{
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <div class="header">
+        <div>
+          <h1>
+            <span>Crank & Speak ✿</span>
+            <span class="badge">interactive</span>
+          </h1>
+          <p class="sub">
+            Drag the crank knob to wind the spring. When you release, the mechanism “unwinds” with inertia and plays a voice line.
+          </p>
+        </div>
+        <div class="controls" aria-label="Controls">
+          <div class="toggle" title="Use a local audio file if present; otherwise speech synthesis will be used.">
+            <input id="useFile" type="checkbox" />
+            <label for="useFile">Prefer <b>voice.mp3</b></label>
+          </div>
+          <button id="calibrate" type="button" title="Re-center and reset spring tension">Reset</button>
+          <button id="demo" type="button" title="Auto-wind to showcase the motion">Demo wind</button>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="canvasWrap" aria-label="Crank mechanism stage">
+          <div class="hud">
+            <div class="meter" aria-hidden="true">
+              <div class="meterTop">
+                <span>Spring tension</span>
+                <span id="tensionText">0%</span>
+              </div>
+              <div class="bar"><div class="fill" id="fill"></div></div>
+            </div>
+            <div class="status" id="status">Drag the knob to wind</div>
+          </div>
+          <canvas id="c"></canvas>
+        </div>
+
+        <div class="side">
+          <div class="card">
+            <div class="k"><strong>How it works</strong><span>touch + mouse</span></div>
+            <div class="hint">
+              <b>1)</b> Click / touch the knob and rotate around the hub to wind.<br />
+              <b>2)</b> Release to let it unwind. If tension is high enough, a voice line plays.<br />
+              <b>3)</b> Add your own audio: place <b>voice.mp3</b> in the same folder.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="k"><strong>Voice line</strong><span id="voiceMode">Speech synthesis</span></div>
+            <div class="row">
+              <span class="pill" id="line">“Wind me up, and I’ll speak.”</span>
+              <span class="pill" id="latency">audio: idle</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="k"><strong>GitHub Pages</strong><span>deploy</span></div>
+            <div class="hint">
+              Put this file in a repo as <b>index.html</b>. (Optional) add <b>voice.mp3</b> next to it.
+              Then enable Pages in repo settings.
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="k"><strong>Pro tip</strong><span>feel</span></div>
+            <div class="hint">
+              The crank has <b>inertia</b> and a <b>spring torque</b> curve. Wind slowly for precision, or fast for satisfying recoil.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <span>Made with Canvas + WebAudio/SpeechSynthesis. No frameworks.</span>
+        <span><a href="#" id="accessibility">Keyboard tips</a></span>
+      </div>
+
+      <p class="srOnly" id="kbHelp">
+        Keyboard: press W to wind a bit, S to unwind, Space to release and play.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Crank & Speak — single-file GitHub Pages demo
+     *
+     * Voice behavior:
+     * - If `voice.mp3` exists AND “Prefer voice.mp3” is enabled, it plays as an <audio> element.
+     * - Otherwise it uses SpeechSynthesis (built-in voice).
+     */
+
+    // ---------- Canvas setup ----------
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d', { alpha: true });
+
+    function resize(){
+      const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+
+    // ---------- UI ----------
+    const fill = document.getElementById('fill');
+    const tensionText = document.getElementById('tensionText');
+    const statusEl = document.getElementById('status');
+    const voiceModeEl = document.getElementById('voiceMode');
+    const latencyEl = document.getElementById('latency');
+    const useFileToggle = document.getElementById('useFile');
+
+    document.getElementById('calibrate').addEventListener('click', () => resetAll(true));
+    document.getElementById('demo').addEventListener('click', () => demoWind());
+
+    document.getElementById('accessibility').addEventListener('click', (e) => {
+      e.preventDefault();
+      alert('Keyboard: W wind, S unwind, Space release/play.\nTip: Click the stage first to focus.');
+    });
+
+    // ---------- Physics state ----------
+    const state = {
+      // angles in radians
+      angle: 0,
+      angVel: 0,
+      // spring tension (0..1)
+      tension: 0,
+      // user interaction
+      dragging: false,
+      lastPointerAngle: 0,
+      lastPointerTime: 0,
+      // audio state
+      audioReady: false,
+      usingFile: false,
+      // visuals
+      sparkle: [],
+      // soft states
+      justReleasedAt: 0,
+      playedAtThisRelease: false,
+      demo: false,
+      demoT: 0,
+    };
+
+    const params = {
+      // crank geometry
+      hubRadius: 46,
+      crankRadius: 120,
+      knobRadius: 16,
+      // physics
+      maxTurns: 4.5, // max winding turns
+      stiffness: 10.5, // spring torque factor
+      damping: 1.25, // air resistance
+      friction: 0.55, // base friction
+      inertia: 1.0,
+      // release threshold
+      speakThreshold: 0.28,
+      // aesthetic
+      glow: 1.0,
+    };
+
+    // ---------- Audio ----------
+    // Prefer local file if present AND user toggles it.
+    const voiceFile = new Audio('voice.mp3');
+    voiceFile.preload = 'auto';
+
+    // A minimal WebAudio tick for winding feedback.
+    let audioCtx = null;
+    let master = null;
+
+    function ensureAudioContext(){
+      if (audioCtx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = AC ? new AC() : null;
+      if (!audioCtx) return;
+      master = audioCtx.createGain();
+      master.gain.value = 0.35;
+      master.connect(audioCtx.destination);
+    }
+
+    function playTick(intensity){
+      // Subtle mechanical tick, gated so it doesn't spam.
+      if (!audioCtx || audioCtx.state !== 'running') return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const f = 420 + 380 * clamp(intensity, 0, 1);
+      osc.frequency.value = f;
+      osc.type = 'triangle';
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(now);
+      osc.stop(now + 0.07);
+    }
+
+    // Detect whether voice.mp3 is reachable.
+    async function probeVoiceFile(){
+      try{
+        // Fetch HEAD is not always allowed on some hosts; use a lightweight GET with range if supported.
+        const res = await fetch('voice.mp3', { method: 'GET' });
+        state.audioReady = res.ok;
+      } catch {
+        state.audioReady = false;
+      }
+      updateVoiceModeLabel();
+    }
+
+    function updateVoiceModeLabel(){
+      state.usingFile = !!(useFileToggle.checked && state.audioReady);
+      voiceModeEl.textContent = state.usingFile ? 'voice.mp3' : 'Speech synthesis';
+    }
+
+    useFileToggle.addEventListener('change', updateVoiceModeLabel);
+
+    function speakLine(energy){
+      // Play local audio if available; otherwise use SpeechSynthesis.
+      // Energy in 0..1 maps to pitch / rate.
+      const e = clamp(energy, 0, 1);
+      const line = pickLine(e);
+      document.getElementById('line').textContent = `“${line}”`;
+
+      if (state.usingFile){
+        try{
+          voiceFile.currentTime = 0;
+          voiceFile.play();
+          latencyEl.textContent = 'audio: playing file';
+          voiceFile.onended = () => latencyEl.textContent = 'audio: idle';
+        } catch (err){
+          // Fallback to TTS
+          latencyEl.textContent = 'audio: file blocked; using TTS';
+          tts(line, e);
+        }
+        return;
+      }
+
+      tts(line, e);
+    }
+
+    function tts(text, energy){
+      if (!('speechSynthesis' in window)){
+        latencyEl.textContent = 'audio: speech not supported';
+        return;
+      }
+      try{
+        const u = new SpeechSynthesisUtterance(text);
+        // Small mapping for expressiveness
+        u.rate = 0.92 + 0.25 * energy;
+        u.pitch = 0.85 + 0.65 * energy;
+        u.volume = 1;
+        latencyEl.textContent = 'audio: speaking';
+        u.onend = () => latencyEl.textContent = 'audio: idle';
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      } catch {
+        latencyEl.textContent = 'audio: failed';
+      }
+    }
+
+    function pickLine(energy){
+      const lines = [
+        'Wind me up, and I’ll speak.',
+        'A little sparkle in every turn.',
+        'Soft power: steady, smooth, unstoppable.',
+        'Okay—gentle reminder delivered.',
+        'Release the crank. Let it shimmer.',
+        'More turns, more story.',
+        'Momentum looks good on you.',
+        'That was satisfying—do it again.',
+      ];
+      // Use energy to bias toward later lines
+      const idx = Math.min(lines.length - 1, Math.floor(energy * (lines.length - 1) + Math.random() * 1.25));
+      return lines[idx];
+    }
+
+    // ---------- Interaction helpers ----------
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+    function lerp(a, b, t){ return a + (b - a) * t; }
+    function smoothstep(t){ return t * t * (3 - 2 * t); }
+    function wrapAngle(a){
+      // keep angle in -pi..pi for stability
+      const pi2 = Math.PI * 2;
+      a = ((a + Math.PI) % pi2 + pi2) % pi2 - Math.PI;
+      return a;
+    }
+
+    function getCenter(){
+      const rect = canvas.getBoundingClientRect();
+      return { cx: rect.width * 0.52, cy: rect.height * 0.56 };
+    }
+
+    function pointerToAngle(clientX, clientY){
+      const rect = canvas.getBoundingClientRect();
+      const { cx, cy } = getCenter();
+      const x = clientX - rect.left - cx;
+      const y = clientY - rect.top - cy;
+      return Math.atan2(y, x);
+    }
+
+    function setStatus(text){ statusEl.textContent = text; }
+
+    // ---------- Drag mechanics ----------
+    let lastTickAt = 0;
+
+    function onPointerDown(e){
+      ensureAudioContext();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+      const pt = ('touches' in e) ? e.touches[0] : e;
+      const a = pointerToAngle(pt.clientX, pt.clientY);
+
+      // hit test knob (in screen space)
+      const rect = canvas.getBoundingClientRect();
+      const { cx, cy } = getCenter();
+      const knob = knobPos(rect.width, rect.height, state.angle);
+      const dx = (pt.clientX - rect.left) - knob.x;
+      const dy = (pt.clientY - rect.top) - knob.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist <= params.knobRadius * 1.9){
+        state.dragging = true;
+        state.lastPointerAngle = a;
+        state.lastPointerTime = performance.now();
+        state.angVel = 0;
+        state.playedAtThisRelease = false;
+        setStatus('Winding…');
+        spawnSpark(1);
+      }
+    }
+
+    function onPointerMove(e){
+      if (!state.dragging) return;
+      const pt = ('touches' in e) ? e.touches[0] : e;
+      const a = pointerToAngle(pt.clientX, pt.clientY);
+
+      const now = performance.now();
+      const dt = Math.max(1, now - state.lastPointerTime);
+
+      // delta angle with unwrap
+      let da = a - state.lastPointerAngle;
+      da = wrapAngle(da);
+
+      // Apply winding: only count positive motion as winding, but allow some reverse.
+      state.angle += da;
+
+      // derive angular velocity from pointer
+      state.angVel = clamp((da / (dt / 1000)) * 0.7, -12, 12);
+
+      // accumulate tension by total turns (absolute positive winding)
+      const turns = state.angle / (Math.PI * 2);
+      const t = clamp(turns / params.maxTurns, 0, 1);
+      state.tension = Math.max(state.tension, t); // tension stores peak wind
+
+      // mechanical ticks
+      const speed = Math.abs(state.angVel);
+      const interval = lerp(90, 35, clamp(speed / 10, 0, 1));
+      if (now - lastTickAt > interval){
+        playTick(clamp(speed / 10, 0, 1));
+        lastTickAt = now;
+      }
+
+      state.lastPointerAngle = a;
+      state.lastPointerTime = now;
+
+      // visuals
+      if (Math.random() < 0.15) spawnSpark(0.6);
+    }
+
+    function onPointerUp(){
+      if (!state.dragging) return;
+      state.dragging = false;
+      state.justReleasedAt = performance.now();
+      setStatus('Released — unwinding');
+      spawnSpark(1.2);
+    }
+
+    canvas.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup', onPointerUp);
+
+    canvas.addEventListener('touchstart', (e) => { onPointerDown(e); }, { passive:true });
+    window.addEventListener('touchmove', (e) => { onPointerMove(e); }, { passive:true });
+    window.addEventListener('touchend', () => onPointerUp(), { passive:true });
+
+    // Keyboard
+    window.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      if (key === 'w'){
+        ensureAudioContext();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        state.dragging = false;
+        state.angle += 0.18;
+        const turns = state.angle / (Math.PI * 2);
+        state.tension = Math.max(state.tension, clamp(turns / params.maxTurns, 0, 1));
+        playTick(0.55);
+        setStatus('Keyboard wind');
+      }
+      if (key === 's'){
+        state.angle -= 0.18;
+        state.angVel -= 0.2;
+        setStatus('Keyboard unwind');
+      }
+      if (e.code === 'Space'){
+        e.preventDefault();
+        state.dragging = false;
+        state.justReleasedAt = performance.now();
+        state.playedAtThisRelease = false;
+        setStatus('Released — unwinding');
+      }
+    });
+
+    // ---------- Drawing ----------
+    function knobPos(w, h, angle){
+      const { cx, cy } = getCenter();
+      const r = params.crankRadius;
+      return {
+        x: cx + Math.cos(angle) * r,
+        y: cy + Math.sin(angle) * r,
+      };
+    }
+
+    function draw(w, h, t){
+      ctx.clearRect(0,0,w,h);
+
+      const { cx, cy } = getCenter();
+
+      // backdrop vignette
+      const g = ctx.createRadialGradient(cx, cy, 40, cx, cy, Math.max(w,h)*0.8);
+      g.addColorStop(0, 'rgba(255,134,200,0.12)');
+      g.addColorStop(0.45, 'rgba(184,146,255,0.08)');
+      g.addColorStop(1, 'rgba(0,0,0,0.0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
+
+      // floor ring
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = 'rgba(199,210,255,0.10)';
+      ctx.lineWidth = 1;
+      for (let i=0;i<3;i++){
+        ctx.beginPath();
+        ctx.arc(0,0, 170 + i*16, 0, Math.PI*2);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // spring housing
+      drawHousing(cx, cy);
+
+      // gear + crank
+      drawGear(cx, cy, state.angle, state.tension);
+      drawCrank(cx, cy, state.angle);
+
+      // dial + indicator
+      drawDial(w, h, state.tension);
+
+      // sparks
+      drawSparkles(w, h, t);
+    }
+
+    function drawHousing(cx, cy){
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      // outer case
+      const r = 178;
+      const lg = ctx.createRadialGradient(0,0, 10, 0,0, r);
+      lg.addColorStop(0, 'rgba(14,19,38,0.35)');
+      lg.addColorStop(0.6, 'rgba(14,19,38,0.55)');
+      lg.addColorStop(1, 'rgba(7,8,12,0.85)');
+      ctx.fillStyle = lg;
+      roundCircle(r);
+      ctx.fill();
+
+      // rim
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(199,210,255,0.14)';
+      roundCircle(r);
+      ctx.stroke();
+
+      // inner plate
+      const r2 = 118;
+      const lg2 = ctx.createRadialGradient(-20,-20, 20, 0,0, r2);
+      lg2.addColorStop(0, 'rgba(143,240,255,0.14)');
+      lg2.addColorStop(0.65, 'rgba(199,210,255,0.08)');
+      lg2.addColorStop(1, 'rgba(14,19,38,0.70)');
+      ctx.fillStyle = lg2;
+      roundCircle(r2);
+      ctx.fill();
+
+      // subtle bolts
+      for (let i=0;i<8;i++){
+        const a = (i/8)*Math.PI*2 + 0.22;
+        const bx = Math.cos(a)*154;
+        const by = Math.sin(a)*154;
+        ctx.fillStyle = 'rgba(199,210,255,0.18)';
+        ctx.beginPath();
+        ctx.arc(bx, by, 3, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      // spring coil visualization
+      const coilTurns = 14;
+      const coilR = 22 + 46 * state.tension;
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = `rgba(143,240,255,${0.16 + 0.35*state.tension})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i=0;i<=coilTurns*42;i++){
+        const p = i/(coilTurns*42);
+        const a = p * Math.PI*2*coilTurns + state.angle * 0.55;
+        const rr = lerp(18, coilR, p);
+        const x = Math.cos(a)*rr;
+        const y = Math.sin(a)*rr;
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+
+      ctx.restore();
+
+      function roundCircle(r){
+        ctx.beginPath();
+        ctx.arc(0,0,r,0,Math.PI*2);
+      }
+    }
+
+    function drawGear(cx, cy, angle, tension){
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle * 0.55);
+
+      const teeth = 28;
+      const r = 102;
+      const tooth = 8;
+
+      // glow
+      ctx.globalAlpha = 0.35 + 0.45*tension;
+      ctx.strokeStyle = `rgba(255,134,200,${0.18 + 0.35*tension})`;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(0,0, r+6, 0, Math.PI*2);
+      ctx.stroke();
+
+      // gear body
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = 'rgba(14,19,38,0.70)';
+      ctx.strokeStyle = 'rgba(199,210,255,0.18)';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      for (let i=0;i<teeth;i++){
+        const a0 = (i/teeth)*Math.PI*2;
+        const a1 = a0 + (Math.PI*2/teeth)*0.45;
+        const a2 = a0 + (Math.PI*2/teeth)*0.65;
+        const a3 = a0 + (Math.PI*2/teeth);
+
+        const r0 = r;
+        const r1 = r + tooth;
+
+        if (i===0) ctx.moveTo(Math.cos(a0)*r0, Math.sin(a0)*r0);
+        ctx.lineTo(Math.cos(a1)*r0, Math.sin(a1)*r0);
+        ctx.lineTo(Math.cos(a2)*r1, Math.sin(a2)*r1);
+        ctx.lineTo(Math.cos(a3)*r0, Math.sin(a3)*r0);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // cutouts
+      ctx.globalAlpha = 0.8;
+      for (let i=0;i<5;i++){
+        const a = (i/5)*Math.PI*2 + 0.1;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.fillStyle = 'rgba(7,8,12,0.55)';
+        roundedRect(-10, -52, 20, 54, 10);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // hub cap
+      ctx.globalAlpha = 1;
+      const hg = ctx.createRadialGradient(-10,-10, 6, 0,0, 30);
+      hg.addColorStop(0, 'rgba(233,238,255,0.22)');
+      hg.addColorStop(1, 'rgba(14,19,38,0.85)');
+      ctx.fillStyle = hg;
+      ctx.beginPath();
+      ctx.arc(0,0, 30, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(199,210,255,0.18)';
+      ctx.stroke();
+
+      ctx.restore();
+
+      function roundedRect(x,y,w,h,r){
+        ctx.beginPath();
+        ctx.moveTo(x+r,y);
+        ctx.arcTo(x+w,y,x+w,y+h,r);
+        ctx.arcTo(x+w,y+h,x,y+h,r);
+        ctx.arcTo(x,y+h,x,y,r);
+        ctx.arcTo(x,y,x+w,y,r);
+        ctx.closePath();
+      }
+    }
+
+    function drawCrank(cx, cy, angle){
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      // arm
+      ctx.save();
+      ctx.rotate(angle);
+
+      const r = params.crankRadius;
+      const armW = 14;
+      const armL = r - 12;
+
+      // shadow
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = 'rgba(0,0,0,0.9)';
+      pill(10, -armW/2 + 10, armL, armW, 10);
+      ctx.fill();
+
+      // arm gradient
+      ctx.globalAlpha = 1;
+      const ag = ctx.createLinearGradient(0,0, armL,0);
+      ag.addColorStop(0, 'rgba(199,210,255,0.14)');
+      ag.addColorStop(0.55, 'rgba(184,146,255,0.18)');
+      ag.addColorStop(1, 'rgba(255,134,200,0.16)');
+      ctx.fillStyle = ag;
+      pill(0, -armW/2, armL, armW, 999);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(199,210,255,0.18)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // knob
+      ctx.translate(r, 0);
+
+      const kg = ctx.createRadialGradient(-6,-6, 4, 0,0, params.knobRadius*2);
+      kg.addColorStop(0, 'rgba(233,238,255,0.28)');
+      kg.addColorStop(0.5, 'rgba(143,240,255,0.24)');
+      kg.addColorStop(1, 'rgba(14,19,38,0.85)');
+
+      // knob halo
+      ctx.globalAlpha = 0.65;
+      ctx.strokeStyle = 'rgba(255,134,200,0.20)';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.arc(0,0, params.knobRadius+6, 0, Math.PI*2);
+      ctx.stroke();
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = kg;
+      ctx.beginPath();
+      ctx.arc(0,0, params.knobRadius, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(199,210,255,0.22)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // highlight
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = 'rgba(233,238,255,0.12)';
+      ctx.beginPath();
+      ctx.arc(-5,-6, params.knobRadius*0.45, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.restore();
+      ctx.restore();
+
+      function pill(x,y,w,h,r){
+        ctx.beginPath();
+        ctx.moveTo(x+r,y);
+        ctx.arcTo(x+w,y,x+w,y+h,r);
+        ctx.arcTo(x+w,y+h,x,y+h,r);
+        ctx.arcTo(x,y+h,x,y,r);
+        ctx.arcTo(x,y,x+w,y,r);
+        ctx.closePath();
+      }
+    }
+
+    function drawDial(w, h, tension){
+      const x = w*0.16;
+      const y = h*0.80;
+      const r = 62;
+      ctx.save();
+      ctx.translate(x, y);
+
+      // dial base
+      ctx.globalAlpha = 0.9;
+      const dg = ctx.createRadialGradient(-10,-10, 10, 0,0, r);
+      dg.addColorStop(0, 'rgba(233,238,255,0.16)');
+      dg.addColorStop(1, 'rgba(14,19,38,0.78)');
+      ctx.fillStyle = dg;
+      ctx.beginPath();
+      ctx.arc(0,0,r,0,Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(199,210,255,0.16)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // ticks
+      ctx.globalAlpha = 0.9;
+      for (let i=0;i<=10;i++){
+        const a = lerp(-Math.PI*0.80, Math.PI*0.80, i/10);
+        const inner = r-10;
+        const outer = r-4;
+        ctx.strokeStyle = i%5===0 ? 'rgba(233,238,255,0.25)' : 'rgba(199,210,255,0.14)';
+        ctx.lineWidth = i%5===0 ? 2 : 1;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*inner, Math.sin(a)*inner);
+        ctx.lineTo(Math.cos(a)*outer, Math.sin(a)*outer);
+        ctx.stroke();
+      }
+
+      // needle
+      const aN = lerp(-Math.PI*0.80, Math.PI*0.80, smoothstep(tension));
+      ctx.rotate(aN);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = 'rgba(143,240,255,0.85)';
+      ctx.strokeStyle = 'rgba(143,240,255,0.28)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-10, -4);
+      ctx.lineTo(r-14, 0);
+      ctx.lineTo(-10, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // needle hub
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.translate(x, y);
+      ctx.fillStyle = 'rgba(14,19,38,0.75)';
+      ctx.strokeStyle = 'rgba(199,210,255,0.18)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0,0,10,0,Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+
+      // dial label
+      ctx.save();
+      ctx.fillStyle = 'rgba(167,178,255,0.80)';
+      ctx.font = '12px ui-sans-serif, system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText('TENSION', x, y + r + 18);
+      ctx.restore();
+    }
+
+    // ---------- Sparkles ----------
+    function spawnSpark(power){
+      const rect = canvas.getBoundingClientRect();
+      const knob = knobPos(rect.width, rect.height, state.angle);
+      const n = Math.floor(10 + 18 * power);
+      for (let i=0;i<n;i++){
+        state.sparkle.push({
+          x: knob.x + (Math.random()*18-9),
+          y: knob.y + (Math.random()*18-9),
+          vx: (Math.random()*2-1) * (1.5 + 3.5*power),
+          vy: (Math.random()*2-1) * (1.2 + 3.2*power),
+          life: 0,
+          ttl: 380 + Math.random()*420,
+          r: 1.0 + Math.random()*2.2,
+        });
+      }
+    }
+
+    function drawSparkles(w,h,t){
+      const now = performance.now();
+      const keep = [];
+      for (const p of state.sparkle){
+        const age = now - p.life;
+        if (!p.life) p.life = now;
+        const u = (now - p.life) / p.ttl;
+        if (u >= 1) continue;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+        p.vy += 0.015;
+
+        const alpha = (1-u) * 0.9;
+        ctx.globalAlpha = alpha;
+        const hueMix = u;
+        ctx.fillStyle = `rgba(${Math.floor(143 + 112*hueMix)}, ${Math.floor(240 - 85*hueMix)}, ${Math.floor(255 - 130*hueMix)}, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+        keep.push(p);
+      }
+      ctx.globalAlpha = 1;
+      state.sparkle = keep.slice(-220);
+    }
+
+    // ---------- Simulation loop ----------
+    let last = performance.now();
+
+    function step(now){
+      const dt = Math.min(0.033, (now - last) / 1000);
+      last = now;
+
+      // demo wind: smoothly wind to showcase
+      if (state.demo){
+        state.demoT += dt;
+        const p = clamp(state.demoT / 2.2, 0, 1);
+        const eased = smoothstep(p);
+        // wind up to 80% tension then release
+        if (p < 0.72){
+          const targetTurns = params.maxTurns * 0.82;
+          const targetAngle = targetTurns * Math.PI * 2;
+          const desired = targetAngle * (eased / 0.72);
+          const da = desired - state.angle;
+          state.angle += da * 0.15;
+          state.angVel = da * 1.4;
+          const turns = state.angle / (Math.PI * 2);
+          state.tension = Math.max(state.tension, clamp(turns / params.maxTurns, 0, 1));
+          if (Math.random() < 0.08) playTick(0.6);
+          setStatus('Demo: winding');
+        } else if (p < 0.80){
+          // pause
+          state.angVel *= 0.92;
+          setStatus('Demo: hold');
+        } else {
+          // release
+          state.demo = false;
+          state.justReleasedAt = performance.now();
+          state.playedAtThisRelease = false;
+          setStatus('Demo: released');
+        }
+      }
+
+      // If not dragging, simulate spring unwind.
+      if (!state.dragging && !state.demo){
+        // spring torque pushes back toward 0 angle
+        const turns = state.angle / (Math.PI * 2);
+        const tensionNow = clamp(turns / params.maxTurns, 0, 1);
+
+        // Nonlinear torque curve: more dramatic near high tension
+        const torque = -Math.sign(state.angle) * params.stiffness * (0.15 + 0.85 * tensionNow) * (0.25 + 0.75 * tensionNow);
+
+        // Damping + friction
+        const damp = -params.damping * state.angVel;
+        const fric = -params.friction * Math.tanh(state.angVel * 2.0);
+
+        const angAcc = (torque + damp + fric) / params.inertia;
+        state.angVel += angAcc * dt;
+        state.angle += state.angVel * dt;
+
+        // Approach zero gently to avoid micro-oscillations
+        if (Math.abs(state.angle) < 0.002 && Math.abs(state.angVel) < 0.02){
+          state.angle = 0;
+          state.angVel = 0;
+        }
+
+        // Decay stored peak tension when unwinding
+        state.tension = Math.max(tensionNow, state.tension - dt * 0.22);
+
+        // subtle ticks while spinning
+        const speed = Math.abs(state.angVel);
+        if (speed > 3.5){
+          const interval = lerp(140, 55, clamp(speed/12, 0, 1));
+          if (now - lastTickAt > interval){
+            playTick(clamp(speed/12, 0, 1));
+            lastTickAt = now;
+          }
+        }
+
+        // Voice trigger: shortly after release, if peak tension exceeded.
+        if (!state.playedAtThisRelease){
+          const since = (now - state.justReleasedAt) / 1000;
+          const energy = state.tension;
+          if (since > 0.08 && energy >= params.speakThreshold){
+            state.playedAtThisRelease = true;
+            setStatus('Speaking…');
+            speakLine(energy);
+            spawnSpark(1.4);
+          }
+        }
+      }
+
+      // UI meter
+      const pct = Math.round(clamp(state.tension, 0, 1) * 100);
+      fill.style.width = pct + '%';
+      tensionText.textContent = pct + '%';
+
+      // Status fade back
+      if (!state.dragging && !state.demo && state.angVel === 0 && state.angle === 0){
+        if (state.tension < 0.02) setStatus('Drag the knob to wind');
+      }
+
+      // Render
+      const rect = canvas.getBoundingClientRect();
+      draw(rect.width, rect.height, now);
+
+      requestAnimationFrame(step);
+    }
+
+    // ---------- Utilities ----------
+    function resetAll(hard){
+      state.dragging = false;
+      state.demo = false;
+      state.demoT = 0;
+      state.angle = 0;
+      state.angVel = 0;
+      state.tension = 0;
+      state.playedAtThisRelease = true;
+      state.justReleasedAt = performance.now();
+      if (hard){
+        try{ window.speechSynthesis?.cancel?.(); } catch {}
+        try{ voiceFile.pause(); voiceFile.currentTime = 0; } catch {}
+        latencyEl.textContent = 'audio: idle';
+      }
+      setStatus('Reset');
+      spawnSpark(0.8);
+    }
+
+    function demoWind(){
+      ensureAudioContext();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      resetAll(false);
+      state.demo = true;
+      state.demoT = 0;
+      state.playedAtThisRelease = true;
+    }
+
+    // ---------- Boot ----------
+    resize();
+    probeVoiceFile();
+    updateVoiceModeLabel();
+
+    // Autoplay restrictions: show hint if audio context is suspended.
+    setInterval(() => {
+      if (!audioCtx) return;
+      if (audioCtx.state === 'suspended'){
+        latencyEl.textContent = 'audio: tap to enable';
+      }
+    }, 600);
+
+    resetAll(false);
+    requestAnimationFrame(step);
+  </script>
+</body>
+</html>
