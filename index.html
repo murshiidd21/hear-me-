@@ -316,11 +316,7 @@
           </p>
         </div>
         <div class="controls" aria-label="Controls">
-          <div class="toggle" title="Use a local audio file if present; otherwise speech synthesis will be used.">
-            <input id="useFile" type="checkbox" />
-            <label for="useFile">Prefer <b>voice.mp3</b></label>
-          </div>
-          <button id="calibrate" type="button" title="Re-center and reset spring tension">Reset</button>
+                    <button id="calibrate" type="button" title="Re-center and reset spring tension">Reset</button>
           <button id="demo" type="button" title="Auto-wind to showcase the motion">Demo wind</button>
         </div>
       </div>
@@ -351,7 +347,7 @@
           </div>
 
           <div class="card">
-            <div class="k"><strong>Voice line</strong><span id="voiceMode">Speech synthesis</span></div>
+            <div class="k"><strong>Voice Audio</strong><span>voice.mp3 only</span></div>
             <div class="row">
               <span class="pill" id="line">“Wind me up, and I’ll speak.”</span>
               <span class="pill" id="latency">audio: idle</span>
@@ -387,200 +383,45 @@
   </div>
 
   <script>
-    /**
-     * Crank & Speak — single-file GitHub Pages demo
-     *
-     * Voice behavior:
-     * - If `voice.mp3` exists AND “Prefer voice.mp3” is enabled, it plays as an <audio> element.
-     * - Otherwise it uses SpeechSynthesis (built-in voice).
+        /**
+     * Crank & Speak — voice.mp3 only
+     * Audio plays ONLY while actively winding.
      */
 
-    // ---------- Canvas setup ----------
-    const canvas = document.getElementById('c');
-    const ctx = canvas.getContext('2d', { alpha: true });
-
-    function resize(){
-      const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-      const rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    window.addEventListener('resize', resize);
-
-    // ---------- UI ----------
-    const fill = document.getElementById('fill');
-    const tensionText = document.getElementById('tensionText');
-    const statusEl = document.getElementById('status');
-    const voiceModeEl = document.getElementById('voiceMode');
-    const latencyEl = document.getElementById('latency');
-    const useFileToggle = document.getElementById('useFile');
-
-    document.getElementById('calibrate').addEventListener('click', () => resetAll(true));
-    document.getElementById('demo').addEventListener('click', () => demoWind());
-
-    document.getElementById('accessibility').addEventListener('click', (e) => {
-      e.preventDefault();
-      alert('Keyboard: W wind, S unwind, Space release/play.\nTip: Click the stage first to focus.');
-    });
-
-    // ---------- Physics state ----------
-    const state = {
-      // angles in radians
-      angle: 0,
-      angVel: 0,
-      // spring tension (0..1)
-      tension: 0,
-      // user interaction
-      dragging: false,
-      lastPointerAngle: 0,
-      lastPointerTime: 0,
-      // audio state
-      audioReady: false,
-      usingFile: false,
-      // visuals
-      sparkle: [],
-      // soft states
-      justReleasedAt: 0,
-      playedAtThisRelease: false,
-      demo: false,
-      demoT: 0,
-    };
-
-    const params = {
-      // crank geometry
-      hubRadius: 46,
-      crankRadius: 120,
-      knobRadius: 16,
-      // physics
-      maxTurns: 4.5, // max winding turns
-      stiffness: 10.5, // spring torque factor
-      damping: 1.25, // air resistance
-      friction: 0.55, // base friction
-      inertia: 1.0,
-      // release threshold
-      speakThreshold: 0.28,
-      // aesthetic
-      glow: 1.0,
-    };
-
-    // ---------- Audio ----------
-    // Prefer local file if present AND user toggles it.
+    // ---------- Audio (voice.mp3 only) ----------
     const voiceFile = new Audio('voice.mp3');
     voiceFile.preload = 'auto';
+    voiceFile.loop = true;
 
-    // A minimal WebAudio tick for winding feedback.
-    let audioCtx = null;
-    let master = null;
+    let audioReady = false;
 
-    function ensureAudioContext(){
-      if (audioCtx) return;
-      const AC = window.AudioContext || window.webkitAudioContext;
-      audioCtx = AC ? new AC() : null;
-      if (!audioCtx) return;
-      master = audioCtx.createGain();
-      master.gain.value = 0.35;
-      master.connect(audioCtx.destination);
-    }
-
-    function playTick(intensity){
-      // Subtle mechanical tick, gated so it doesn't spam.
-      if (!audioCtx || audioCtx.state !== 'running') return;
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      const f = 420 + 380 * clamp(intensity, 0, 1);
-      osc.frequency.value = f;
-      osc.type = 'triangle';
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.004);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
-      osc.connect(gain);
-      gain.connect(master);
-      osc.start(now);
-      osc.stop(now + 0.07);
-    }
-
-    // Detect whether voice.mp3 is reachable.
     async function probeVoiceFile(){
       try{
-        // Fetch HEAD is not always allowed on some hosts; use a lightweight GET with range if supported.
         const res = await fetch('voice.mp3', { method: 'GET' });
-        state.audioReady = res.ok;
+        audioReady = res.ok;
+        latencyEl.textContent = audioReady ? 'audio: ready' : 'audio: missing voice.mp3';
       } catch {
-        state.audioReady = false;
-      }
-      updateVoiceModeLabel();
-    }
-
-    function updateVoiceModeLabel(){
-      state.usingFile = !!(useFileToggle.checked && state.audioReady);
-      voiceModeEl.textContent = state.usingFile ? 'voice.mp3' : 'Speech synthesis';
-    }
-
-    useFileToggle.addEventListener('change', updateVoiceModeLabel);
-
-    function speakLine(energy){
-      // Play local audio if available; otherwise use SpeechSynthesis.
-      // Energy in 0..1 maps to pitch / rate.
-      const e = clamp(energy, 0, 1);
-      const line = pickLine(e);
-      document.getElementById('line').textContent = `“${line}”`;
-
-      if (state.usingFile){
-        try{
-          voiceFile.currentTime = 0;
-          voiceFile.play();
-          latencyEl.textContent = 'audio: playing file';
-          voiceFile.onended = () => latencyEl.textContent = 'audio: idle';
-        } catch (err){
-          // Fallback to TTS
-          latencyEl.textContent = 'audio: file blocked; using TTS';
-          tts(line, e);
-        }
-        return;
-      }
-
-      tts(line, e);
-    }
-
-    function tts(text, energy){
-      if (!('speechSynthesis' in window)){
-        latencyEl.textContent = 'audio: speech not supported';
-        return;
-      }
-      try{
-        const u = new SpeechSynthesisUtterance(text);
-        // Small mapping for expressiveness
-        u.rate = 0.92 + 0.25 * energy;
-        u.pitch = 0.85 + 0.65 * energy;
-        u.volume = 1;
-        latencyEl.textContent = 'audio: speaking';
-        u.onend = () => latencyEl.textContent = 'audio: idle';
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(u);
-      } catch {
-        latencyEl.textContent = 'audio: failed';
+        audioReady = false;
+        latencyEl.textContent = 'audio: missing voice.mp3';
       }
     }
 
-    function pickLine(energy){
-      const lines = [
-        'Wind me up, and I’ll speak.',
-        'A little sparkle in every turn.',
-        'Soft power: steady, smooth, unstoppable.',
-        'Okay—gentle reminder delivered.',
-        'Release the crank. Let it shimmer.',
-        'More turns, more story.',
-        'Momentum looks good on you.',
-        'That was satisfying—do it again.',
-      ];
-      // Use energy to bias toward later lines
-      const idx = Math.min(lines.length - 1, Math.floor(energy * (lines.length - 1) + Math.random() * 1.25));
-      return lines[idx];
+    function startVoice(){
+      if (!audioReady) return;
+      voiceFile.currentTime = 0;
+      voiceFile.volume = 0.6;
+      voiceFile.play().catch(()=>{});
+      latencyEl.textContent = 'audio: playing';
+    }
+
+    function stopVoice(){
+      voiceFile.pause();
+      voiceFile.currentTime = 0;
+      latencyEl.textContent = 'audio: idle';
     }
 
     // ---------- Interaction helpers ----------
+
     function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
     function lerp(a, b, t){ return a + (b - a) * t; }
     function smoothstep(t){ return t * t * (3 - 2 * t); }
@@ -631,6 +472,7 @@
         state.angVel = 0;
         state.playedAtThisRelease = false;
         setStatus('Winding…');
+        startVoice();
         spawnSpark(1);
       }
     }
@@ -676,9 +518,9 @@
     function onPointerUp(){
       if (!state.dragging) return;
       state.dragging = false;
-      state.justReleasedAt = performance.now();
-      setStatus('Released — unwinding');
-      spawnSpark(1.2);
+      setStatus('Stopped winding');
+      stopVoice();
+      spawnSpark(0.8);
     }
 
     canvas.addEventListener('mousedown', onPointerDown);
@@ -1177,17 +1019,7 @@
           }
         }
 
-        // Voice trigger: shortly after release, if peak tension exceeded.
-        if (!state.playedAtThisRelease){
-          const since = (now - state.justReleasedAt) / 1000;
-          const energy = state.tension;
-          if (since > 0.08 && energy >= params.speakThreshold){
-            state.playedAtThisRelease = true;
-            setStatus('Speaking…');
-            speakLine(energy);
-            spawnSpark(1.4);
-          }
-        }
+        
       }
 
       // UI meter
